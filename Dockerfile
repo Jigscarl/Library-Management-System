@@ -3,12 +3,12 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution and project files first for better layer caching
-COPY ["Library Management System.sln", "."]
+COPY ["LibraryManagement.slnx", "."]
 COPY ["Library.Core/Library.Core.csproj", "Library.Core/"]
 COPY ["Library.Data/Library.Data.csproj", "Library.Data/"]
 COPY ["Library.Api/Library.Api.csproj", "Library.Api/"]
 
-RUN dotnet restore "Library Management System.sln"
+RUN dotnet restore "LibraryManagement.slnx"
 
 # Copy everything else and publish the API
 COPY . .
