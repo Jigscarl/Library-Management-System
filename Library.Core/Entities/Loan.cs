@@ -13,5 +13,5 @@ public class Loan
     public DateTime BorrowedOn { get; set; } = DateTime.UtcNow;    public DateTime DueOn { get; set; }
     public DateTime? ReturnedOn { get; set; }
 
-    public Fine? Penalty { get; set; }
+    public Fine? Fine { get; set; }
 }
