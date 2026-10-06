@@ -40,7 +40,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
-// ⚠️ TEMPORARY CORS — allows any origin for testing.
+// TEMPORARY CORS — allows any origin for testing.
 // Replace with explicit WithOrigins(...) once the Vercel URL is known.
 builder.Services.AddCors(options =>
 {

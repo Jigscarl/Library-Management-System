@@ -51,14 +51,17 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
     {
-        if (dto.Role != "Admin" && dto.Role != "Student")
+        // Normalize role so "student", "Student", "STUDENT" all pass
+        var role = dto.Role?.Trim().ToLowerInvariant();
+
+        if (role != "admin" && role != "student")
             return BadRequest("Role must be 'Admin' or 'Student'.");
 
-        // Admins can only be created by other admins — block public admin registration
-        if (dto.Role == "Admin")
+        // Admins cannot self-register — must be created by another admin
+        if (role == "admin")
             return BadRequest("Admin accounts cannot be created via public registration.");
 
-        // Uniqueness on email
+        // Email must be unique among users
         if (await _db.Users.AnyAsync(u => u.Email.ToLower() == dto.Email.ToLower()))
             return Conflict("A user with this email already exists.");
 
@@ -85,12 +88,12 @@ public class AuthController : ControllerBase
             return BadRequest("A membership number is required to register as a student.");
         }
 
-        // Does this member already have a user account?
+        // One login per member
         if (await _db.Users.AnyAsync(u => u.MemberId == member.Id))
             return Conflict("This member already has a login account.");
 
         // The email on the member record must match the registration email
-        if (!string.Equals(member.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(member.Email, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase))
             return BadRequest("The email does not match the member record.");
 
         var user = new User
@@ -98,7 +101,7 @@ public class AuthController : ControllerBase
             Email = dto.Email.Trim(),
             FullName = dto.FullName.Trim(),
             PasswordHash = _auth.HashPassword(dto.Password),
-            Role = "Student",
+            Role = "Student",   // always stored capitalized
             IsActive = true,
             MemberId = member.Id,
         };
