@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Library.Api.Dtos;
 using Library.Core.Entities;
 using Library.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace Library.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class FinesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -30,8 +32,6 @@ public class FinesController : ControllerBase
         f.Loan.DueOn,
         f.Loan.ReturnedOn);
 
-    // -------- GET all fines (optionally only unpaid) --------
-
     [HttpGet]
     public async Task<ActionResult<List<FineDto>>> GetAll([FromQuery] bool unpaidOnly = false)
     {
@@ -42,8 +42,6 @@ public class FinesController : ControllerBase
         return await query.Select(ToDto).ToListAsync();
     }
 
-    // -------- GET one fine --------
-
     [HttpGet("{id}")]
     public async Task<ActionResult<FineDto>> GetById(int id)
     {
@@ -51,8 +49,6 @@ public class FinesController : ControllerBase
         if (fine is null) return NotFound();
         return fine;
     }
-
-    // -------- GET fines for a member --------
 
     [HttpGet("member/{memberId}")]
     public async Task<ActionResult<List<FineDto>>> GetByMember(int memberId)
@@ -65,8 +61,6 @@ public class FinesController : ControllerBase
             .Select(ToDto)
             .ToListAsync();
     }
-
-    // -------- Mark a fine as paid --------
 
     [HttpPut("{id}/pay")]
     public async Task<ActionResult<FineDto>> Pay(int id)

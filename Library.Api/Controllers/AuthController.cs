@@ -32,14 +32,10 @@ public class AuthController : ControllerBase
             .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
 
         if (user is null || !user.IsActive)
-        {
             return Unauthorized("Invalid email or password.");
-        }
 
         if (!_auth.VerifyPassword(dto.Password, user.PasswordHash))
-        {
             return Unauthorized("Invalid email or password.");
-        }
 
         var (token, expiresAt) = _auth.GenerateJwt(user);
 
@@ -55,39 +51,56 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
     {
-        // Validate role
         if (dto.Role != "Admin" && dto.Role != "Student")
             return BadRequest("Role must be 'Admin' or 'Student'.");
+
+        // Admins can only be created by other admins — block public admin registration
+        if (dto.Role == "Admin")
+            return BadRequest("Admin accounts cannot be created via public registration.");
 
         // Uniqueness on email
         if (await _db.Users.AnyAsync(u => u.Email.ToLower() == dto.Email.ToLower()))
             return Conflict("A user with this email already exists.");
 
-        // Students must have a valid MemberId; Admins must not
-        if (dto.Role == "Student")
+        // Resolve the Member record by MembershipNumber or MemberId
+        Member? member = null;
+
+        if (!string.IsNullOrWhiteSpace(dto.MembershipNumber))
         {
-            if (dto.MemberId is null)
-                return BadRequest("Students require a MemberId.");
+            member = await _db.Members
+                .FirstOrDefaultAsync(m => m.MembershipNumber == dto.MembershipNumber);
 
-            if (!await _db.Members.AnyAsync(m => m.Id == dto.MemberId))
-                return BadRequest("Member does not exist.");
-
-            if (await _db.Users.AnyAsync(u => u.MemberId == dto.MemberId))
-                return Conflict("This member already has a login account.");
+            if (member is null)
+                return BadRequest("No member found with that membership number.");
         }
         else if (dto.MemberId is not null)
         {
-            return BadRequest("Admins cannot be linked to a Member.");
+            member = await _db.Members.FindAsync(dto.MemberId);
+
+            if (member is null)
+                return BadRequest("Member does not exist.");
         }
+        else
+        {
+            return BadRequest("A membership number is required to register as a student.");
+        }
+
+        // Does this member already have a user account?
+        if (await _db.Users.AnyAsync(u => u.MemberId == member.Id))
+            return Conflict("This member already has a login account.");
+
+        // The email on the member record must match the registration email
+        if (!string.Equals(member.Email, dto.Email, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("The email does not match the member record.");
 
         var user = new User
         {
             Email = dto.Email.Trim(),
             FullName = dto.FullName.Trim(),
             PasswordHash = _auth.HashPassword(dto.Password),
-            Role = dto.Role,
+            Role = "Student",
             IsActive = true,
-            MemberId = dto.MemberId,
+            MemberId = member.Id,
         };
 
         _db.Users.Add(user);
@@ -114,6 +127,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
 
         var user = await _db.Users.FindAsync(userId);
+
         if (user is null || !user.IsActive)
             return Unauthorized();
 

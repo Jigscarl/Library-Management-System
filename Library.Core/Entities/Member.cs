@@ -11,6 +11,6 @@ public class Member
 
     public ICollection<Loan> Loans { get; set; } = new List<Loan>();
 
-    // ✅ NEW — optional inverse to User
+    //  NEW — optional inverse to User
     public User? User { get; set; }
 }

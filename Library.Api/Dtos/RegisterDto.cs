@@ -13,10 +13,12 @@ public class RegisterDto
     [Required, StringLength(200, MinimumLength = 6)]
     public string Password { get; set; } = string.Empty;
 
-    // "Admin" or "Student"
     [Required]
     public string Role { get; set; } = "Student";
 
-    // Required for students — links this user to a Member record
+    // Either supply MemberId directly (admin case)
     public int? MemberId { get; set; }
+
+    // Or supply MembershipNumber (student self-registration case)
+    public string? MembershipNumber { get; set; }
 }
