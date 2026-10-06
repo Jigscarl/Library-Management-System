@@ -204,6 +204,50 @@ namespace Library.Data.Migrations
                     b.ToTable("Members");
                 });
 
+            modelBuilder.Entity("Library.Core.Entities.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("MemberId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("MemberId")
+                        .IsUnique();
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("AuthorBook", b =>
                 {
                     b.HasOne("Library.Core.Entities.Author", null)
@@ -260,6 +304,16 @@ namespace Library.Data.Migrations
                     b.Navigation("Member");
                 });
 
+            modelBuilder.Entity("Library.Core.Entities.User", b =>
+                {
+                    b.HasOne("Library.Core.Entities.Member", "Member")
+                        .WithOne("User")
+                        .HasForeignKey("Library.Core.Entities.User", "MemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Member");
+                });
+
             modelBuilder.Entity("Library.Core.Entities.Book", b =>
                 {
                     b.Navigation("Loans");
@@ -278,6 +332,8 @@ namespace Library.Data.Migrations
             modelBuilder.Entity("Library.Core.Entities.Member", b =>
                 {
                     b.Navigation("Loans");
+
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }

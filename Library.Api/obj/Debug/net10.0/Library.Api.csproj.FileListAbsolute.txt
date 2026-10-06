@@ -122,6 +122,15 @@ D:\Library Management System\Library.Api\bin\Debug\net10.0\Library.Core.dll
 D:\Library Management System\Library.Api\bin\Debug\net10.0\Library.Data.dll
 D:\Library Management System\Library.Api\bin\Debug\net10.0\Library.Core.pdb
 D:\Library Management System\Library.Api\bin\Debug\net10.0\Library.Data.pdb
-D:\Library Management System\Library.Api\obj\Debug\net10.0\Library.Api.sourcelink.json
 D:\Library Management System\Library.Api\bin\Debug\net10.0\Npgsql.dll
 D:\Library Management System\Library.Api\bin\Debug\net10.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\BCrypt-Net-Next.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.Bcl.Cryptography.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Abstractions.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.IdentityModel.JsonWebTokens.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Logging.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
+D:\Library Management System\Library.Api\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll

@@ -10,4 +10,7 @@ public class Member
     public bool IsActive { get; set; }
 
     public ICollection<Loan> Loans { get; set; } = new List<Loan>();
+
+    // ✅ NEW — optional inverse to User
+    public User? User { get; set; }
 }

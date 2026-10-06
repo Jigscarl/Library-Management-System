@@ -1,5 +1,9 @@
+using System.Text;
+using Library.Api.Services;
 using Library.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,19 +12,43 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-// Database — PostgreSQL via Supabase
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
-// CORS — allow the React frontend (local dev + deployed Vercel)
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// JWT Authentication
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero,   // don't allow extra tolerance time
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173",          // Vite dev server
-                "http://localhost:3000",          // CRA dev server (in case)
-                "https://your-app.vercel.app")    // ⚠️ REPLACE with your real Vercel URL
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "https://your-app.vercel.app")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -30,11 +58,25 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Auto-apply pending migrations on startup (useful for Render deployment)
+// Auto-migrate + seed admin on startup
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    if (!db.Users.Any(u => u.Role == "Admin"))
+    {
+        var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
+        db.Users.Add(new Library.Core.Entities.User
+        {
+            Email = "admin@khanton.test",
+            FullName = "System Admin",
+            PasswordHash = auth.HashPassword("ChangeMe123!"),
+            Role = "Admin",
+            IsActive = true,
+        });
+        db.SaveChanges();
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -46,9 +88,11 @@ else
     app.UseHttpsRedirection();
 }
 
-app.UseCors("AllowFrontend");   // MUST come before MapControllers
+app.UseCors("AllowFrontend");
 
+app.UseAuthentication();   // ← MUST come before UseAuthorization
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
