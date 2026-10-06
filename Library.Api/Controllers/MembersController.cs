@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
 using Library.Api.Dtos;
 using Library.Core.Entities;
-using Library.Core.Common;
 using Library.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +10,7 @@ namespace Library.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin")]
 public class MembersController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -24,7 +25,7 @@ public class MembersController : ControllerBase
         m.FullName,
         m.Email,
         m.MembershipNumber,
-       new DateTimeOffset(m.JoinedOn, TimeSpan.Zero).ToOffset(TimeZones.Nairobi),
+        m.JoinedOn,
         m.IsActive,
         m.Loans.Count(l => l.ReturnedOn == null));
 

@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Library.Api.Dtos;
 using Library.Core.Entities;
 using Library.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ namespace Library.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class BooksController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -24,7 +26,7 @@ public class BooksController : ControllerBase
         b.Category.Name,
         b.Authors.Select(a => a.Name).ToList());
 
-    // -------- GET --------
+    // -------- GET (any logged-in user) --------
 
     [HttpGet]
     public async Task<ActionResult<List<BookDto>>> GetAll()
@@ -40,9 +42,10 @@ public class BooksController : ControllerBase
         return book;
     }
 
-    // -------- POST --------
+    // -------- POST (admin only) --------
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<BookDto>> Create(CreateBookDto dto)
     {
         if (!await _db.Categories.AnyAsync(c => c.Id == dto.CategoryId))
@@ -73,9 +76,10 @@ public class BooksController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = book.Id }, created);
     }
 
-    // -------- PUT --------
+    // -------- PUT (admin only) --------
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<BookDto>> Update(int id, UpdateBookDto dto)
     {
         var book = await _db.Books.FirstOrDefaultAsync(b => b.Id == id);
@@ -104,9 +108,10 @@ public class BooksController : ControllerBase
         return updated;
     }
 
-    // -------- DELETE --------
+    // -------- DELETE (admin only) --------
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var book = await _db.Books.FirstOrDefaultAsync(b => b.Id == id);

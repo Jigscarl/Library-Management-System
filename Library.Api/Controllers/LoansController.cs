@@ -1,8 +1,10 @@
 using System.Linq.Expressions;
+using System.Security.Claims;
 using Library.Api.Dtos;
 using Library.Core.Common;
 using Library.Core.Entities;
 using Library.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +12,7 @@ namespace Library.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class LoansController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -32,21 +35,41 @@ public class LoansController : ControllerBase
         l.Fine != null ? l.Fine.Amount : (decimal?)null,
         l.Fine != null ? l.Fine.IsPaid : (bool?)null);
 
-    // -------- GET all loans --------
+    // -------- GET all (admin only) --------
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<LoanDto>>> GetAll()
     {
         return await _db.Loans.Select(ToDto).ToListAsync();
     }
 
-    // -------- GET loan by id --------
+    // -------- GET mine (any logged-in student) --------
+
+    [HttpGet("mine")]
+    public async Task<ActionResult<List<LoanDto>>> GetMine()
+    {
+        var memberId = GetCallerMemberId();
+        if (memberId is null)
+            return Forbid();
+
+        return await _db.Loans
+            .Where(l => l.MemberId == memberId.Value)
+            .Select(ToDto)
+            .ToListAsync();
+    }
+
+    // -------- GET one (owner or admin) --------
 
     [HttpGet("{id}")]
     public async Task<ActionResult<LoanDto>> GetById(int id)
     {
         var loan = await _db.Loans.Where(l => l.Id == id).Select(ToDto).FirstOrDefaultAsync();
         if (loan is null) return NotFound();
+
+        if (!CanActFor(loan.MemberId))
+            return Forbid();
+
         return loan;
     }
 
@@ -55,6 +78,9 @@ public class LoansController : ControllerBase
     [HttpPost("borrow")]
     public async Task<ActionResult<LoanDto>> Borrow(BorrowDto dto)
     {
+        if (!CanActFor(dto.MemberId))
+            return Forbid();
+
         var book = await _db.Books.FirstOrDefaultAsync(b => b.Id == dto.BookId);
         if (book is null) return NotFound($"Book {dto.BookId} not found.");
 
@@ -104,12 +130,14 @@ public class LoansController : ControllerBase
 
         if (loan is null) return NotFound();
 
+        if (!CanActFor(loan.MemberId))
+            return Forbid();
+
         if (loan.ReturnedOn != null)
             return Conflict("This loan has already been returned.");
 
         var now = DateTime.UtcNow;
         loan.ReturnedOn = now;
-
         loan.Book.AvailableCopies += 1;
 
         if (now > loan.DueOn)
@@ -126,5 +154,22 @@ public class LoansController : ControllerBase
 
         var updated = await _db.Loans.Where(l => l.Id == id).Select(ToDto).FirstAsync();
         return updated;
+    }
+
+    // -------- Auth helpers --------
+
+    private bool IsAdmin() => User.IsInRole("Admin");
+
+    private int? GetCallerMemberId()
+    {
+        var claim = User.FindFirstValue("memberId");
+        return int.TryParse(claim, out var id) ? id : null;
+    }
+
+    private bool CanActFor(int memberId)
+    {
+        if (IsAdmin()) return true;
+        var callerId = GetCallerMemberId();
+        return callerId.HasValue && callerId.Value == memberId;
     }
 }
