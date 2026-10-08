@@ -9,4 +9,7 @@ public class LoginDto
 
     [Required, StringLength(200, MinimumLength = 6)]
     public string Password { get; set; } = string.Empty;
+
+    [RegularExpression(@"^[A-Z]{3}/B/\d{2}-\d{5}/\d{4}$", ErrorMessage = "Membership number must match XXX/B/NN-NNNNN/YYYY (for example, COM/B/01-00132/2023).")]
+    public string? MembershipNumber { get; set; }
 }

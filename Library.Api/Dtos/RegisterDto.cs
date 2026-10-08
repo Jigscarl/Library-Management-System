@@ -16,9 +16,6 @@ public class RegisterDto
     [Required]
     public string Role { get; set; } = "Student";
 
-    // Either supply MemberId directly (admin case)
-    public int? MemberId { get; set; }
-
-    // Or supply MembershipNumber (student self-registration case)
+    [Required, RegularExpression(@"^[A-Z]{3}/B/\d{2}-\d{5}/\d{4}$", ErrorMessage = "Membership number must match XXX/B/NN-NNNNN/YYYY (for example, COM/B/01-00132/2023).")]
     public string? MembershipNumber { get; set; }
 }
