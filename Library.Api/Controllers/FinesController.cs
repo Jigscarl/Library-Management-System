@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Security.Claims;
 using Library.Api.Dtos;
 using Library.Core.Entities;
 using Library.Data;
@@ -10,7 +11,7 @@ namespace Library.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class FinesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -33,6 +34,7 @@ public class FinesController : ControllerBase
         f.Loan.ReturnedOn);
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<FineDto>>> GetAll([FromQuery] bool unpaidOnly = false)
     {
         var query = _db.Fines.AsQueryable();
@@ -42,7 +44,21 @@ public class FinesController : ControllerBase
         return await query.Select(ToDto).ToListAsync();
     }
 
+    [HttpGet("mine")]
+    public async Task<ActionResult<List<FineDto>>> GetMine()
+    {
+        var memberIdClaim = User.FindFirstValue("memberId");
+        if (!int.TryParse(memberIdClaim, out var memberId))
+            return Forbid();
+
+        return await _db.Fines
+            .Where(f => f.Loan.MemberId == memberId)
+            .Select(ToDto)
+            .ToListAsync();
+    }
+
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<FineDto>> GetById(int id)
     {
         var fine = await _db.Fines.Where(f => f.Id == id).Select(ToDto).FirstOrDefaultAsync();
@@ -51,6 +67,7 @@ public class FinesController : ControllerBase
     }
 
     [HttpGet("member/{memberId}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<List<FineDto>>> GetByMember(int memberId)
     {
         if (!await _db.Members.AnyAsync(m => m.Id == memberId))
@@ -63,6 +80,7 @@ public class FinesController : ControllerBase
     }
 
     [HttpPut("{id}/pay")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<FineDto>> Pay(int id)
     {
         var fine = await _db.Fines.FirstOrDefaultAsync(f => f.Id == id);

@@ -67,4 +67,24 @@ public class MembersController : ControllerBase
         var created = await _db.Members.Where(m => m.Id == member.Id).Select(ToDto).FirstAsync();
         return CreatedAtAction(nameof(GetById), new { id = member.Id }, created);
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var member = await _db.Members
+            .Include(m => m.User)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        if (member is null) return NotFound();
+
+        if (await _db.Loans.AnyAsync(loan => loan.MemberId == id))
+            return Conflict("Cannot delete a member with loan history.");
+
+        if (member.User is not null)
+            _db.Users.Remove(member.User);
+
+        _db.Members.Remove(member);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
